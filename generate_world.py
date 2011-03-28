@@ -2,6 +2,7 @@ from nbt import *
 from nbt.mapbuilder import utilities
 from nbt.region import RegionFile
 from nbt.chunk import BlockArray
+from struct import pack
 from StringIO import StringIO
 import argparse, array, os, random, sys, time
 
