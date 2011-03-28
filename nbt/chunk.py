@@ -131,18 +131,20 @@ class BlockArray(object):
 				for y in range(127,-1,-1):
 					offset = y + z*128 + x*128*16
 					if (self.blocksList[offset] == 8 or self.blocksList[offset] == 9):
-						tints.append({'h':240, 's':76, 'l':50})
+						tints.append({'h':240, 's':76, 'l':50}) # Water
 					elif (self.blocksList[offset] == 18):
-						tints.append({'h':123, 's':90, 'l':50})
+						tints.append({'h':123, 's':90, 'l':50}) # Leaves
 					elif (self.blocksList[offset] == 79):
-						tints.append({'h':240, 's':5, 'l':95})
+						tints.append({'h':240, 's':5, 'l':95}) # Ice
+					elif (self.blocksList[offset] == 51):
+						tints.append({'h':55, 's':100, 'l':50}) # Fire
 					elif (self.blocksList[offset] != 0 or y == 0):
 						block_id = self.blocksList[offset]
 						ground_height = y
 						break
 				color = block_colors[block_id] if (block_id in block_colors) else {'h':0, 's':0, 'l':100}
 				
-				height_shift = (ground_height-75)*0.75
+				height_shift = (ground_height-70)*0.75
 				
 				final_color = {'h':color['h'], 's':color['s'], 'l':color['l']+height_shift}
 				if final_color['h'] > 360: final_color['h'] -= 360
