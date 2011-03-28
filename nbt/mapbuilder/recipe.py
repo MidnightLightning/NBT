@@ -1,3 +1,7 @@
+from nbt.region import RegionFile
+from nbt.chunk import BlockArray
+import math, os
+
 class block_recipe:
 	def __init__(self):
 		self.blocks = {} # empty dictionary
