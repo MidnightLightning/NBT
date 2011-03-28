@@ -1,7 +1,13 @@
 """ Handle a single chunk of data (16x16x128 blocks) """
 from StringIO import StringIO
 from struct import pack, unpack
-import array
+import array, math
+
+try:
+	import Image
+	PIL_enabled = True
+except ImportError:
+	PIL_enabled = False
 
 class Chunk(object):
 	def __init__(self, x, z, length):
@@ -83,7 +89,99 @@ class BlockArray(object):
 							bytes.append(y+1)
 							break
 			return array.array('B', bytes).tostring()
-						
+	
+	def get_map(self):
+		# Show an image of the chunk from above
+		if (not PIL_enabled): return false
+		pixels = ""
+		block_colors = {
+			0: {'h':0, 's':0, 'l':0},       # Air
+			1: {'h':0, 's':0, 'l':20},      # Stone
+			2: {'h':126, 's':61, 'l':30},   # Grass
+			3: {'h':35, 's':93, 'l':15},    # Dirt
+			4: {'h':0, 's':0, 'l':25},      # Cobblestone
+			8: {'h':240, 's':76, 'l':50},   # Water
+			9: {'h':240, 's':76, 'l':50},   # Water
+			10: {'h':30, 's':100, 'l':50},  # Lava
+			11: {'h':30, 's':100, 'l':50},  # Lava
+			12: {'h':48, 's':31, 'l':50},   # Sand
+			13: {'h':21, 's':18, 'l':20},   # Gravel
+			17: {'h':35, 's':93, 'l':15},   # Wood
+			18: {'h':123, 's':95, 'l':40},  # Leaves
+			24: {'h':48, 's':31, 'l':40},   # Sandstone
+			37: {'h':0, 's':100, 'l':50},   # Red Flower
+			38: {'h':60, 's':100, 'l':60},  # Yellow Flower
+			50: {'h':60, 's':100, 'l':50},  # Torch
+			51: {'h':55, 's':100, 'l':50},  # Fire
+			59: {'h':123, 's':60, 'l':50},  # Crops
+			60: {'h':35, 's':93, 'l':15},   # Farmland
+			78: {'h':240, 's':5, 'l':85},   # Snow
+			81: {'h':126, 's':61, 'l':20},  # Cacti
+			82: {'h':7, 's':62, 'l':23},    # Clay
+			83: {'h':123, 's':70, 'l':50},  # Sugarcane
+			86: {'h':24, 's':100, 'l':45},  # Pumpkin
+			91: {'h':24, 's':100, 'l':45},  # Jack-o-lantern
+		}
+		for x in range(16):
+			for z in range(15,-1,-1):
+				# Find the highest block in this column
+				ground_height = 127
+				tints = []
+				for y in range(127,-1,-1):
+					offset = y + z*128 + x*128*16
+					if (self.blocksList[offset] == 8 or self.blocksList[offset] == 9):
+						tints.append({'h':240, 's':76, 'l':50})
+					elif (self.blocksList[offset] == 18):
+						tints.append({'h':123, 's':90, 'l':50})
+					elif (self.blocksList[offset] != 0 or y == 0):
+						block_id = self.blocksList[offset]
+						ground_height = y
+						break
+				color = block_colors[block_id] if (block_id in block_colors) else {'h':0, 's':0, 'l':100}
+				
+				height_shift = (ground_height-75)*0.75
+				
+				final_color = {'h':color['h'], 's':color['s'], 'l':color['l']+height_shift}
+				if final_color['h'] > 360: final_color['h'] -= 360
+				if final_color['h'] < 0: final_color['h'] += 360
+				if final_color['s'] > 100: final_color['s'] = 100
+				if final_color['s'] < 0: final_color['s'] = 0
+				if final_color['l'] > 100: final_color['l'] = 100
+				if final_color['l'] < 0: final_color['l'] = 0
+				
+				# Apply tints from translucent blocks
+				for tint in tints:
+					if (abs(final_color['h'] - tint['h']) > 180):
+						if (tint['h'] > final_color['h']):
+							tint['h'] -= 360
+						else:
+							tint['h'] += 360
+					
+					# Find location of two colors on the H/S color circle
+					p1x = math.cos(math.radians(tint['h']))*tint['s']
+					p1y = math.sin(math.radians(tint['h']))*tint['s']
+					p2x = math.cos(math.radians(final_color['h']))*final_color['s']
+					p2y = math.sin(math.radians(final_color['h']))*final_color['s']
+					
+					# Slide part of the way from tint to base color
+					avg_x = p1x + 2/5.0*(p2x-p1x)
+					avg_y = p1y + 2/5.0*(p2y-p1y)
+					avg_h = math.atan(avg_y/avg_x)
+					avg_s = avg_y/math.sin(avg_h)
+					avg_l = (tint['l']*2+final_color['l']*3)/5
+					avg_h = math.degrees(avg_h)
+					
+					#print 'tint:',tint, 'base:',final_color, 'avg:',avg_h,avg_s,avg_l
+					final_color = {'h':avg_h, 's':avg_s, 'l':avg_l}
+
+				rgb = hsl2rgb(final_color['h'], final_color['s'], final_color['l'])
+
+				#print 'X:',x,'Y:',y,'Z:',z,'Shift:',height_shift, 'Color:',final_color
+				#print 'ID:',block_id,'Color:',final_color, 'RGB:',rgb
+				pixels += pack("BBB", rgb[0], rgb[1], rgb[2])
+		im = Image.fromstring('RGB', (16,16), pixels)
+		return im
+		
 						
 	def set_blocks(self, list=None, dict=None, fill_air=False):
 		if list:
@@ -147,3 +245,27 @@ class BlockArray(object):
 			b = self.dataList[index]
 			#print "Byte: %02X" % b
 			return b & 15
+
+# From http://www.easyrgb.com/index.php?X=MATH&H=19#text19
+def hsl2rgb(H,S,L):
+	H = H/360.0
+	S = S/100.0 # Turn into a percentage
+	L = L/100.0
+	if (S == 0):
+		return (int(L*255), int(L*255), int(L*255))
+	var_2 = L * (1+S) if (L < 0.5) else (L+S) - (S*L)
+	var_1 = 2*L - var_2
+
+	def hue2rgb(v1, v2, vH):
+		if (vH < 0): vH += 1
+		if (vH > 1): vH -= 1
+		#print ('v1:',v1,'v2:',v2,'vH:',vH)
+		if ((6*vH)<1): return v1 + (v2-v1)*6*vH
+		if ((2*vH)<1): return v2
+		if ((3*vH)<2): return v1 + (v2-v1)*(2/3.0-vH)*6
+		return v1
+		
+	R = int(255*hue2rgb(var_1, var_2, H + (1.0/3)))
+	G = int(255*hue2rgb(var_1, var_2, H))
+	B = int(255*hue2rgb(var_1, var_2, H - (1.0/3)))
+	return (R,G,B)

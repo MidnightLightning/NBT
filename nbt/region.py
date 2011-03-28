@@ -1,10 +1,16 @@
 from nbt import NBTFile
-from chunk import Chunk
+from chunk import Chunk, BlockArray
 from struct import pack, unpack
 from gzip import GzipFile
 import zlib
 from StringIO import StringIO
 import math, time, datetime
+
+try:
+	import Image
+	PIL_enabled = True
+except ImportError:
+	PIL_enabled = False
 
 class RegionFile(object):
 	"""
@@ -42,10 +48,19 @@ class RegionFile(object):
 			index += 4
 		return chunks
 	
-	@classmethod
-	def getchunk(path, x, z):
-		pass
+	def get_map(self):
+		if (not PIL_enabled): return false
+		map = Image.new('RGBA', (512,512), (128,128,128,0))
+		for x in range(32):
+			for z in range(32):
+				chunk = self.get_chunk(x,z)
+				if (chunk == None): continue # Skip this chunk if it doesn't exist
+				blocks = BlockArray(chunk['Level']['Blocks'].value, chunk['Level']['Data'].value)
+				im = blocks.get_map()
+				map.paste(im, ((31-z)*16, x*16))
+		return map
 		
+	
 	def get_timestamp(self, x, z):
 		self.file.seek(4096+4*(x+z*32))
 		timestamp = unpack(">I",self.file.read(4))
