@@ -37,8 +37,8 @@ region = RegionFile(region_filename)
 # Create chunk blocks
 blocks = BlockArray() # Generate empty
 chunk_blocks = {}
-chunk_blocks = utilities.draw_disk((7,7,5), 10, chunk_blocks) # Draw a disk
 chunk_blocks = utilities.fill_blocks((0,0,0), (15,0,15), chunk_blocks, 7) # Make bedrock floor
+chunk_blocks[(0,1,0)] = 1 # Stone grid marker
 blocks.set_blocks(dict=chunk_blocks)
 
 blocks_byte = blocks.get_blocks_byte_array(buffer=True)
