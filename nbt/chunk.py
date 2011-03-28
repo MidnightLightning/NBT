@@ -115,7 +115,8 @@ class BlockArray(object):
 			51: {'h':55, 's':100, 'l':50},  # Fire
 			59: {'h':123, 's':60, 'l':50},  # Crops
 			60: {'h':35, 's':93, 'l':15},   # Farmland
-			78: {'h':240, 's':5, 'l':85},   # Snow
+			78: {'h':240, 's':10, 'l':85},  # Snow
+			79: {'h':240, 's':10, 'l':95},  # Ice
 			81: {'h':126, 's':61, 'l':20},  # Cacti
 			82: {'h':7, 's':62, 'l':23},    # Clay
 			83: {'h':123, 's':70, 'l':50},  # Sugarcane
@@ -133,6 +134,8 @@ class BlockArray(object):
 						tints.append({'h':240, 's':76, 'l':50})
 					elif (self.blocksList[offset] == 18):
 						tints.append({'h':123, 's':90, 'l':50})
+					elif (self.blocksList[offset] == 79):
+						tints.append({'h':240, 's':5, 'l':95})
 					elif (self.blocksList[offset] != 0 or y == 0):
 						block_id = self.blocksList[offset]
 						ground_height = y
@@ -150,7 +153,7 @@ class BlockArray(object):
 				if final_color['l'] < 0: final_color['l'] = 0
 				
 				# Apply tints from translucent blocks
-				for tint in tints:
+				for tint in reversed(tints):
 					if (abs(final_color['h'] - tint['h']) > 180):
 						if (tint['h'] > final_color['h']):
 							tint['h'] -= 360
