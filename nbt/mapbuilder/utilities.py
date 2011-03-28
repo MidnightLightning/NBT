@@ -33,8 +33,8 @@ def draw_disk(center, diameter, blocks, block_id=1, fill_air=False):
 		extents += 0.5
 	#print "Center: "+str(center[0])+","+str(center[1])+","+str(center[2])+"; Extents: "+str(extents)
 	#print "Range: "+str(center[0]-extents)+","+str(center[0]+extents)
-	for x in range(int(center[0]-extents), int(center[0]+extents)):
-		for z in range(int(center[2]-extents), int(center[2]+extents)):
+	for x in range(int(center[0]-extents), int(center[0]+extents)+1):
+		for z in range(int(center[2]-extents), int(center[2]+extents)+1):
 			if (math.sqrt(math.pow(x-center[0],2)+math.pow(z-center[2],2)) <= radius):
 				# This point is inside the disk
 				blocks[(x,center[1],z)] = block_id
