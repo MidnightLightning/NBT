@@ -70,3 +70,15 @@ def fill_blocks(start, end, blocks, block_id=1):
 			for z in range(start[2], end[2]+1):
 				blocks[(x,y,z)] = block_id
 	return blocks
+
+def astroturf(blocks):
+	# Find all dirt blocks that have sky above them and turn them into grass
+	# This simple function will not convert dirt under an overhang, but will convert dirt under glass and other transparent objects (flowers, saplings, signs, fences, etc.)
+	for x in range(16):
+		for z in range(16):
+			for y in range(127,-1,-1):
+				if (blocks[(x,y,z)] > 0):
+					# First solid block in the column
+					blocks[(x,y,z)] = 2 if (blocks[(x,y,z)] == 3) else blocks[(x,y,z)] # Change it to grass, if it's dirt
+					if (blocks[(x,y,z)] not in (6, 18, 20, 26, 37, 38, 39, 40, 50, 51, 55, 63, 64, 65, 66, 68, 69, 71, 75, 76, 77, 83, 85, 86, 92, 93, 94)): break # Don't process past the first solid, opaque block in a column
+	return blocks
