@@ -1,4 +1,4 @@
-from struct import pack, unpack, calcsize, error as StructError
+from struct import Struct, error as StructError
 from gzip import GzipFile
 import zlib
 from UserDict import DictMixin
@@ -48,16 +48,16 @@ class TAG(object):
 class _TAG_Numeric(TAG):
 	def __init__(self, value=None, name=None, buffer=None):
 		super(_TAG_Numeric, self).__init__(value, name)
-		self.size = calcsize(self.fmt)
+		self.size = self.fmt.size
 		if buffer:
 			self._parse_buffer(buffer)
 
 	#Parsers and Generators
 	def _parse_buffer(self, buffer, offset=None):
-		self.value = unpack(self.fmt, buffer.read(self.size))[0]
+		self.value = self.fmt.unpack(buffer.read(self.size))[0]
 
 	def _render_buffer(self, buffer, offset=None):
-		buffer.write(pack(self.fmt, self.value))
+		buffer.write(self.fmt.pack(self.value))
 
 	#Printing and Formatting of tree
 	def __repr__(self):
@@ -66,27 +66,27 @@ class _TAG_Numeric(TAG):
 #== Value Tags ==#
 class TAG_Byte(_TAG_Numeric):
 	id = TAG_BYTE
-	fmt = ">b"
+	fmt = Struct(">b")
 
 class TAG_Short(_TAG_Numeric):
 	id = TAG_SHORT
-	fmt = ">h"
+	fmt = Struct(">h")
 
 class TAG_Int(_TAG_Numeric):
 	id = TAG_INT
-	fmt = ">i"
+	fmt = Struct(">i")
 
 class TAG_Long(_TAG_Numeric):
 	id = TAG_LONG
-	fmt = ">q"
+	fmt = Struct(">q")
 
 class TAG_Float(_TAG_Numeric):
 	id = TAG_FLOAT
-	fmt = ">f"
+	fmt = Struct(">f")
 
 class TAG_Double(_TAG_Numeric):
 	id = TAG_DOUBLE
-	fmt = ">d"
+	fmt = Struct(">d")
 
 class TAG_Byte_Array(TAG):
 	id = TAG_BYTE_ARRAY
