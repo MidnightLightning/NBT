@@ -32,6 +32,12 @@ class block_recipe:
 		if (self.max_z == None or coord[2] > self.max_z):
 			self.max_z = coord[2]
 	
+	def set_blocks(self, dict):
+		self.__init__() # Reset defaults
+		for coord, block_id in dict.items():
+			if (block_id != 0):
+				self.add_block(coord, block_id)
+	
 	def get_extents(self):
 		min = self.min_x, self.min_y, self.min_z
 		max = self.max_x, self.max_y, self.max_z
