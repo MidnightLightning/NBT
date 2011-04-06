@@ -59,6 +59,18 @@ class RegionFile(object):
 				im = blocks.get_map()
 				map.paste(im, ((31-z)*16, x*16))
 		return map
+
+	def get_heightmap(self, gmin=50, gmax=128):
+		if (not PIL_enabled): return false
+		map = Image.new('RGBA', (512,512), (128,128,128,0))
+		for x in range(32):
+			for z in range(32):
+				chunk = self.get_chunk(x,z)
+				if (chunk == None): continue # Skip this chunk if it doesn't exist
+				blocks = BlockArray(chunk['Level']['Blocks'].value, chunk['Level']['Data'].value)
+				im = blocks.get_heightmap_image(False, gmin, gmax)
+				map.paste(im, ((31-z)*16, x*16))
+		return map
 		
 	
 	def get_timestamp(self, x, z):
