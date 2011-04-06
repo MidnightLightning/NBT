@@ -93,6 +93,26 @@ class BlockArray(object):
 			else:
 				return array.array('B', bytes).tostring()
 	
+	def get_heightmap_image(self, buffer=False, gmin=False, gmax=False):
+		if (not PIL_enabled): return false
+		points = self.get_heightmap(buffer, True)
+		# Normalize the points
+		hmin = min(points) if (gmin == False) else gmin # Allow setting the min/max explicitly, in case this is part of a bigger map
+		hmax = max(points) if (gmax == False) else gmax
+		hdelta = hmax-hmin+0.0
+		pixels = ""
+		for y in range(16):
+			for x in range(16):
+				# pix X => mc -Z
+				# pix Y => mc X
+				offset = (15-x)*16+y
+				height = int((points[offset]-hmin)/hdelta*255)
+				if (height < 0): height = 0
+				if (height > 255): height = 255
+				pixels += pack(">B", height)
+		im = Image.fromstring('L', (16,16), pixels)
+		return im
+
 	def get_map(self):
 		# Show an image of the chunk from above
 		if (not PIL_enabled): return false
