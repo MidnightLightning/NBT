@@ -177,37 +177,12 @@ class BlockArray(object):
 				height_shift = (ground_height-70)*0.75
 				
 				final_color = {'h':color['h'], 's':color['s'], 'l':color['l']+height_shift}
-				if final_color['h'] > 360: final_color['h'] -= 360
-				if final_color['h'] < 0: final_color['h'] += 360
-				if final_color['s'] > 100: final_color['s'] = 100
-				if final_color['s'] < 0: final_color['s'] = 0
 				if final_color['l'] > 100: final_color['l'] = 100
 				if final_color['l'] < 0: final_color['l'] = 0
 				
 				# Apply tints from translucent blocks
 				for tint in reversed(tints):
-					if (abs(final_color['h'] - tint['h']) > 180):
-						if (tint['h'] > final_color['h']):
-							tint['h'] -= 360
-						else:
-							tint['h'] += 360
-					
-					# Find location of two colors on the H/S color circle
-					p1x = math.cos(math.radians(tint['h']))*tint['s']
-					p1y = math.sin(math.radians(tint['h']))*tint['s']
-					p2x = math.cos(math.radians(final_color['h']))*final_color['s']
-					p2y = math.sin(math.radians(final_color['h']))*final_color['s']
-					
-					# Slide part of the way from tint to base color
-					avg_x = p1x + 2/5.0*(p2x-p1x)
-					avg_y = p1y + 2/5.0*(p2y-p1y)
-					avg_h = math.atan(avg_y/avg_x)
-					avg_s = avg_y/math.sin(avg_h)
-					avg_l = (tint['l']*2+final_color['l']*3)/5
-					avg_h = math.degrees(avg_h)
-					
-					#print 'tint:',tint, 'base:',final_color, 'avg:',avg_h,avg_s,avg_l
-					final_color = {'h':avg_h, 's':avg_s, 'l':avg_l}
+					final_color = hsl_slide(final_color, tint, 0.4)
 
 				rgb = hsl2rgb(final_color['h'], final_color['s'], final_color['l'])
 
@@ -281,6 +256,35 @@ class BlockArray(object):
 			#print "Byte: %02X" % b
 			return b & 15
 
+## Color functions for map generation ##
+
+# Hue given in degrees,
+# saturation and lightness given either in range 0-1 or 0-100 and returned in kind
+def hsl_slide(hsl1, hsl2, ratio):
+	if (abs(hsl2['h'] - hsl1['h']) > 180):
+		if (hsl1['h'] > hsl2['h']):
+			hsl1['h'] -= 360
+		else:
+			hsl1['h'] += 360
+	
+	# Find location of two colors on the H/S color circle
+	p1x = math.cos(math.radians(hsl1['h']))*hsl1['s']
+	p1y = math.sin(math.radians(hsl1['h']))*hsl1['s']
+	p2x = math.cos(math.radians(hsl2['h']))*hsl2['s']
+	p2y = math.sin(math.radians(hsl2['h']))*hsl2['s']
+	
+	# Slide part of the way from tint to base color
+	avg_x = p1x + ratio*(p2x-p1x)
+	avg_y = p1y + ratio*(p2y-p1y)
+	avg_h = math.atan(avg_y/avg_x)
+	avg_s = avg_y/math.sin(avg_h)
+	avg_l = hsl1['l'] + ratio*(hsl2['l']-hsl1['l'])
+	avg_h = math.degrees(avg_h)
+	
+	#print 'tint:',tint, 'base:',final_color, 'avg:',avg_h,avg_s,avg_l
+	return {'h':avg_h, 's':avg_s, 'l':avg_l}
+
+
 # From http://www.easyrgb.com/index.php?X=MATH&H=19#text19
 def hsl2rgb(H,S,L):
 	H = H/360.0
@@ -294,7 +298,6 @@ def hsl2rgb(H,S,L):
 	def hue2rgb(v1, v2, vH):
 		if (vH < 0): vH += 1
 		if (vH > 1): vH -= 1
-		#print ('v1:',v1,'v2:',v2,'vH:',vH)
 		if ((6*vH)<1): return v1 + (v2-v1)*6*vH
 		if ((2*vH)<1): return v2
 		if ((3*vH)<2): return v1 + (v2-v1)*(2/3.0-vH)*6
