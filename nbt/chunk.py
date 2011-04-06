@@ -119,21 +119,21 @@ class BlockArray(object):
 		pixels = ""
 		block_colors = {
 			0: {'h':0, 's':0, 'l':0},       # Air
-			1: {'h':0, 's':0, 'l':20},      # Stone
-			2: {'h':126, 's':61, 'l':30},   # Grass
-			3: {'h':35, 's':93, 'l':15},    # Dirt
+			1: {'h':0, 's':0, 'l':32},      # Stone
+			2: {'h':94, 's':42, 'l':32},    # Grass
+			3: {'h':27, 's':51, 'l':15},    # Dirt
 			4: {'h':0, 's':0, 'l':25},      # Cobblestone
-			8: {'h':240, 's':76, 'l':50},   # Water
-			9: {'h':240, 's':76, 'l':50},   # Water
-			10: {'h':30, 's':100, 'l':50},  # Lava
-			11: {'h':30, 's':100, 'l':50},  # Lava
-			12: {'h':48, 's':31, 'l':50},   # Sand
+			8: {'h':228, 's':50, 'l':23},   # Water
+			9: {'h':228, 's':50, 'l':23},   # Water
+			10: {'h':16, 's':100, 'l':48},  # Lava
+			11: {'h':16, 's':100, 'l':48},  # Lava
+			12: {'h':53, 's':22, 'l':58},   # Sand
 			13: {'h':21, 's':18, 'l':20},   # Gravel
 			17: {'h':35, 's':93, 'l':15},   # Wood
-			18: {'h':123, 's':95, 'l':40},  # Leaves
+			18: {'h':114, 's':64, 'l':22},  # Leaves
 			24: {'h':48, 's':31, 'l':40},   # Sandstone
-			37: {'h':0, 's':100, 'l':50},   # Red Flower
-			38: {'h':60, 's':100, 'l':60},  # Yellow Flower
+			37: {'h':60, 's':100, 'l':60},  # Yellow Flower
+			38: {'h':0, 's':100, 'l':50},   # Red Flower
 			50: {'h':60, 's':100, 'l':50},  # Torch
 			51: {'h':55, 's':100, 'l':50},  # Fire
 			59: {'h':123, 's':60, 'l':50},  # Crops
@@ -173,8 +173,7 @@ class BlockArray(object):
 						break
 
 				color = block_colors[block_id] if (block_id in block_colors) else {'h':0, 's':0, 'l':100}
-				
-				height_shift = (ground_height-70)*0.75
+				height_shift = (ground_height-64)*0.25
 				
 				final_color = {'h':color['h'], 's':color['s'], 'l':color['l']+height_shift}
 				if final_color['l'] > 100: final_color['l'] = 100
