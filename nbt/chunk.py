@@ -76,7 +76,7 @@ class BlockArray(object):
 		else:
 			return array.array('B', self.dataList).tostring()
 	
-	def get_heightmap(self, buffer=False):
+	def get_heightmap(self, buffer=False, as_array=False):
 		if buffer:
 			return StringIO(pack(">i", 256)+self.get_heightmap())
 		else:
@@ -88,7 +88,10 @@ class BlockArray(object):
 						if (self.blocksList[offset] != 0 or y == 0):
 							bytes.append(y+1)
 							break
-			return array.array('B', bytes).tostring()
+			if (as_array):
+				return bytes
+			else:
+				return array.array('B', bytes).tostring()
 	
 	def get_map(self):
 		# Show an image of the chunk from above
