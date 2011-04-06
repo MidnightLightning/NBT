@@ -41,7 +41,7 @@ class BlockArray(object):
 	def get_all_data(self):
 		bits = []
 		for b in self.dataList:
-			bits.append((b >> 15) & 15) # Big end of the byte
+			bits.append((b >> 4) & 15) # Big end of the byte
 			bits.append(b & 15) # Little end of the byte
 		return bits
 	
