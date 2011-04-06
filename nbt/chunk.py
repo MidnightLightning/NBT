@@ -152,19 +152,26 @@ class BlockArray(object):
 				ground_height = 127
 				tints = []
 				for y in range(127,-1,-1):
-					offset = y + z*128 + x*128*16
-					if (self.blocksList[offset] == 8 or self.blocksList[offset] == 9):
-						tints.append({'h':240, 's':76, 'l':50}) # Water
-					elif (self.blocksList[offset] == 18):
-						tints.append({'h':123, 's':90, 'l':50}) # Leaves
-					elif (self.blocksList[offset] == 79):
+					block_id = self.get_block(x,y,z)
+					block_data = self.get_data(x,y,z)
+					if (block_id == 8 or block_id == 9):
+						tints.append({'h':228, 's':50, 'l':23}) # Water
+					elif (block_id == 18):
+						if (block_data == 1):
+							tints.append({'h':114, 's':64, 'l':22}) # Redwood Leaves
+						elif (block_data == 2):
+							tints.append({'h':93, 's':39, 'l':10}) # Birch Leaves
+						else:
+							tints.append({'h':114, 's':64, 'l':22}) # Normal Leaves
+					elif (block_id == 79):
 						tints.append({'h':240, 's':5, 'l':95}) # Ice
-					elif (self.blocksList[offset] == 51):
+					elif (block_id == 51):
 						tints.append({'h':55, 's':100, 'l':50}) # Fire
-					elif (self.blocksList[offset] != 0 or y == 0):
-						block_id = self.blocksList[offset]
+					elif (block_id != 0 or y == 0):
+						# Here is ground level
 						ground_height = y
 						break
+
 				color = block_colors[block_id] if (block_id in block_colors) else {'h':0, 's':0, 'l':100}
 				
 				height_shift = (ground_height-70)*0.75
