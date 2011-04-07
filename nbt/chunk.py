@@ -220,8 +220,8 @@ class BlockArray(object):
 		self.blocksList[offset] = id
 
 	
-	# Get a given X,Y,Z
-	def get_block(self, x,y,z):
+	# Get a given X,Y,Z or a tuple of three coordinates
+	def get_block(self, x,y,z, coord=False):
 		"""
 		Laid out like:
 		(0,0,0), (0,1,0), (0,2,0) ... (0,127,0), (0,0,1), (0,1,1), (0,2,1) ... (0,127,1), (0,0,2) ... (0,127,15), (1,0,0), (1,1,0) ... (15,127,15)
@@ -233,12 +233,12 @@ class BlockArray(object):
 		      blocks.append(Block(x,y,z))
 		"""
 		
-		offset = y + z*128 + x*128*16
+		offset = y + z*128 + x*128*16 if (coord == False) else coord[1] + coord[2]*128 + coord[0]*128*16
 		return self.blocksList[offset]
 
-	# Get a given X,Y,Z
-	def get_data(self, x,y,z):
-		offset = y + z*128 + x*128*16
+	# Get a given X,Y,Z or a tuple of three coordinates
+	def get_data(self, x,y,z, coord=False):
+		offset = y + z*128 + x*128*16 if (coord == False) else coord[1] + coord[2]*128 + coord[0]*128*16
 		if (offset % 2 == 1):
 			# offset is odd
 			index = (offset-1)/2
