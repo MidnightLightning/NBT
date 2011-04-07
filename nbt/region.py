@@ -90,10 +90,8 @@ class RegionFile(object):
 		offset = offset * 1024*4 # offset is in 4KiB sectors
 		if offset:
 			self.file.seek(offset)
-			length = unpack(">I", self.file.read(4))
-			length = length[0] # For some reason, this is coming back as a tuple
-			compression = unpack(">B", self.file.read(1))
-			compression = compression[0]
+			length = unpack(">I", self.file.read(4))[0]
+			compression = unpack(">B", self.file.read(1))[0]
 			chunk = self.file.read(length-1)
 			if (compression == 2):
 				chunk = zlib.decompress(chunk)
