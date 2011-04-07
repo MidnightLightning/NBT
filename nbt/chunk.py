@@ -23,18 +23,12 @@ class BlockArray(object):
 		if (blocksBytes != None):
 			self.blocksList = [ord(b) for b in blocksBytes] # A list of bytes
 		else:
-			# Create an empty block list (32768 entries of zero (air))
-			self.blocksList = []
-			for i in range(4096):
-				self.blocksList.extend([0,0,0,0,0,0,0,0])
+			self.blocksList = [0]*32768 # Create an empty block list (32768 entries of zero (air))
 		
 		if (dataBytes != None):
 			self.dataList = [ord(b) for b in dataBytes]
 		else:
-			# Create an empty data list (32768 entries of zero)
-			self.dataList = []
-			for i in range(4096):
-				self.dataList.extend([0,0,0,0,0,0,0,0])
+			self.dataList = [0]*32768 # Create an empty data list (32768 entries of zero)
 			
 
 	# Get all data entries
