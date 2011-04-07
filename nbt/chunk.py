@@ -1,4 +1,3 @@
-""" Handle a single chunk of data (16x16x128 blocks) """
 from StringIO import StringIO
 from struct import pack, unpack
 import array, math
@@ -9,6 +8,7 @@ try:
 except ImportError:
 	PIL_enabled = False
 
+""" Handle a single chunk of data (16x16x128 blocks) """
 class Chunk(object):
 	def __init__(self, nbt):
 		chunk_data = nbt['Level']
