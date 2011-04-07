@@ -185,8 +185,6 @@ class BlockArray(object):
 
 				rgb = hsl2rgb(final_color['h'], final_color['s'], final_color['l'])
 
-				#print 'X:',x,'Y:',y,'Z:',z,'Shift:',height_shift, 'Color:',final_color
-				#print 'ID:',block_id,'Color:',final_color, 'RGB:',rgb
 				pixels += pack("BBB", rgb[0], rgb[1], rgb[2])
 		im = Image.fromstring('RGB', (16,16), pixels)
 		return im
@@ -241,18 +239,15 @@ class BlockArray(object):
 	# Get a given X,Y,Z
 	def get_data(self, x,y,z):
 		offset = y + z*128 + x*128*16
-		#print "Offset: "+str(offset)
 		if (offset % 2 == 1):
 			# offset is odd
 			index = (offset-1)/2
 			b = self.dataList[index]
-			#print "Byte: %02X" % b
 			return (b >>15) & 15 # Get big end of byte
 		else:
 			# offset is even
 			index = offset/2
 			b = self.dataList[index]
-			#print "Byte: %02X" % b
 			return b & 15
 
 ## Color functions for map generation ##
