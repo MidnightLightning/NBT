@@ -12,7 +12,7 @@ except ImportError:
 class Chunk(object):
 	def __init__(self, nbt):
 		chunk_data = nbt['Level']
-		self.coords = chunk_data['xPos'].value(),chunk_data['zPos'].value()
+		self.coords = chunk_data['xPos'],chunk_data['zPos']
 		self.blocks = BlockArray(chunk_data['Blocks'].value, chunk_data['Data'].value)
 	
 	def __repr__(self):
