@@ -4,7 +4,7 @@
 # 
 
 from nbt import NBTFile
-from chunk import Chunk, BlockArray
+from chunk import Chunk
 from struct import pack, unpack
 from gzip import GzipFile
 import zlib
@@ -58,22 +58,22 @@ class RegionFile(object):
 		map = Image.new('RGBA', (512,512), (128,128,128,0))
 		for x in range(32):
 			for z in range(32):
-				chunk = self.get_chunk(x,z)
-				if (chunk == None): continue # Skip this chunk if it doesn't exist
-				blocks = BlockArray(chunk['Level']['Blocks'].value, chunk['Level']['Data'].value)
-				im = blocks.get_map()
+				chunk_nbt = self.get_chunk(x,z)
+				if (chunk_nbt == None): continue # Skip this chunk if it doesn't exist
+				chunk = Chunk(chunk_nbt)
+				im = chunk.get_map()
 				map.paste(im, ((31-z)*16, x*16))
 		return map
 
-	def get_heightmap(self, gmin=50, gmax=128):
+	def get_heightmap_image(self, gmin=50, gmax=128):
 		if (not PIL_enabled): return false
 		map = Image.new('RGBA', (512,512), (128,128,128,0))
 		for x in range(32):
 			for z in range(32):
-				chunk = self.get_chunk(x,z)
-				if (chunk == None): continue # Skip this chunk if it doesn't exist
-				blocks = BlockArray(chunk['Level']['Blocks'].value, chunk['Level']['Data'].value)
-				im = blocks.get_heightmap_image(False, gmin, gmax)
+				chunk_nbt = self.get_chunk(x,z)
+				if (chunk_nbt == None): continue # Skip this chunk if it doesn't exist
+				chunk = Chunk(chunk_nbt)
+				im = chunk.get_heightmap_image(False, gmin, gmax)
 				map.paste(im, ((31-z)*16, x*16))
 		return map
 		

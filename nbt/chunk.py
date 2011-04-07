@@ -14,83 +14,10 @@ class Chunk(object):
 		chunk_data = nbt['Level']
 		self.coords = chunk_data['xPos'],chunk_data['zPos']
 		self.blocks = BlockArray(chunk_data['Blocks'].value, chunk_data['Data'].value)
-	
-	def __repr__(self):
-		return "("+str(self.coords[0])+","+str(self.coords[1])+")"
 
-""" Convenience class for dealing with a Block/data byte array """
-class BlockArray(object):
-	def __init__(self, blocksBytes=None, dataBytes=None):
-		if (blocksBytes != None):
-			self.blocksList = [ord(b) for b in blocksBytes] # A list of bytes
-		else:
-			self.blocksList = [0]*32768 # Create an empty block list (32768 entries of zero (air))
-		
-		if (dataBytes != None):
-			self.dataList = [ord(b) for b in dataBytes]
-		else:
-			self.dataList = [0]*32768 # Create an empty data list (32768 entries of zero)
-			
-
-	# Get all data entries
-	def get_all_data(self):
-		bits = []
-		for b in self.dataList:
-			bits.append((b >> 4) & 15) # Big end of the byte
-			bits.append(b & 15) # Little end of the byte
-		return bits
-	
-	def get_blocks_struct(self):
-		cur_x = 0
-		cur_y = 0
-		cur_z = 0
-		blocks = {}
-		for block_id in self.blocksList:
-			blocks[(cur_x,cur_y,cur_z)] = block_id
-			cur_y += 1
-			if (cur_y > 127):
-				cur_y = 0
-				cur_z += 1
-				if (cur_z > 15):
-					cur_z = 0
-					cur_x += 1
-		return blocks
-	
-	# Give blockList back as a byte array
-	def get_blocks_byte_array(self, buffer=False):
-		if buffer:
-			length = len(self.blocksList)
-			return StringIO(pack(">i", length)+self.get_blocks_byte_array())
-		else:
-			return array.array('B', self.blocksList).tostring()
-		
-	def get_data_byte_array(self, buffer=False):
-		if buffer:
-			length = len(self.dataList)/2
-			return StringIO(pack(">i", length)+self.get_data_byte_array())
-		else:
-			return array.array('B', self.dataList).tostring()
-	
-	def generate_heightmap(self, buffer=False, as_array=False):
-		if buffer:
-			return StringIO(pack(">i", 256)+self.generate_heightmap()) # Length + Heightmap, ready for insertion into Chunk NBT
-		else:
-			bytes = []
-			for z in range(16):
-				for x in range(16):
-					for y in range(127, -1, -1):
-						offset = y + z*128 + x*128*16
-						if (self.blocksList[offset] != 0 or y == 0):
-							bytes.append(y+1)
-							break
-			if (as_array):
-				return bytes
-			else:
-				return array.array('B', bytes).tostring()
-	
 	def get_heightmap_image(self, buffer=False, gmin=False, gmax=False):
 		if (not PIL_enabled): return false
-		points = self.generate_heightmap(buffer, True)
+		points = self.blocks.generate_heightmap(buffer, True)
 		# Normalize the points
 		hmin = min(points) if (gmin == False) else gmin # Allow setting the min/max explicitly, in case this is part of a bigger map
 		hmax = max(points) if (gmax == False) else gmax
@@ -147,8 +74,8 @@ class BlockArray(object):
 				ground_height = 127
 				tints = []
 				for y in range(127,-1,-1):
-					block_id = self.get_block(x,y,z)
-					block_data = self.get_data(x,y,z)
+					block_id = self.blocks.get_block(x,y,z)
+					block_data = self.blocks.get_data(x,y,z)
 					if (block_id == 8 or block_id == 9):
 						tints.append({'h':228, 's':50, 'l':23}) # Water
 					elif (block_id == 18):
@@ -183,8 +110,79 @@ class BlockArray(object):
 				pixels += pack("BBB", rgb[0], rgb[1], rgb[2])
 		im = Image.fromstring('RGB', (16,16), pixels)
 		return im
+
+	def __repr__(self):
+		return "("+str(self.coords[0])+","+str(self.coords[1])+")"
+
+""" Convenience class for dealing with a Block/data byte array """
+class BlockArray(object):
+	def __init__(self, blocksBytes=None, dataBytes=None):
+		if (blocksBytes != None):
+			self.blocksList = [ord(b) for b in blocksBytes] # A list of bytes
+		else:
+			self.blocksList = [0]*32768 # Create an empty block list (32768 entries of zero (air))
 		
-						
+		if (dataBytes != None):
+			self.dataList = [ord(b) for b in dataBytes]
+		else:
+			self.dataList = [0]*32768 # Create an empty data list (32768 entries of zero)
+
+	# Get all data entries
+	def get_all_data(self):
+		bits = []
+		for b in self.dataList:
+			bits.append((b >> 4) & 15) # Big end of the byte
+			bits.append(b & 15) # Little end of the byte
+		return bits
+
+	def get_blocks_struct(self):
+		cur_x = 0
+		cur_y = 0
+		cur_z = 0
+		blocks = {}
+		for block_id in self.blocksList:
+			blocks[(cur_x,cur_y,cur_z)] = block_id
+			cur_y += 1
+			if (cur_y > 127):
+				cur_y = 0
+				cur_z += 1
+				if (cur_z > 15):
+					cur_z = 0
+					cur_x += 1
+		return blocks
+
+	# Give blockList back as a byte array
+	def get_blocks_byte_array(self, buffer=False):
+		if buffer:
+			length = len(self.blocksList)
+			return StringIO(pack(">i", length)+self.get_blocks_byte_array())
+		else:
+			return array.array('B', self.blocksList).tostring()
+
+	def get_data_byte_array(self, buffer=False):
+		if buffer:
+			length = len(self.dataList)/2
+			return StringIO(pack(">i", length)+self.get_data_byte_array())
+		else:
+			return array.array('B', self.dataList).tostring()
+
+	def generate_heightmap(self, buffer=False, as_array=False):
+		if buffer:
+			return StringIO(pack(">i", 256)+self.generate_heightmap()) # Length + Heightmap, ready for insertion into Chunk NBT
+		else:
+			bytes = []
+			for z in range(16):
+				for x in range(16):
+					for y in range(127, -1, -1):
+						offset = y + z*128 + x*128*16
+						if (self.blocksList[offset] != 0 or y == 0):
+							bytes.append(y+1)
+							break
+			if (as_array):
+				return bytes
+			else:
+				return array.array('B', bytes).tostring()
+
 	def set_blocks(self, list=None, dict=None, fill_air=False):
 		if list:
 			# Inputting a list like self.blocksList
@@ -209,12 +207,11 @@ class BlockArray(object):
 			# None of the above...
 			return False
 		return True
-	
+
 	def set_block(self, x,y,z, id):
 		offset = y + z*128 + x*128*16
 		self.blocksList[offset] = id
 
-	
 	# Get a given X,Y,Z or a tuple of three coordinates
 	def get_block(self, x,y,z, coord=False):
 		"""
