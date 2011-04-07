@@ -71,9 +71,9 @@ class BlockArray(object):
 		else:
 			return array.array('B', self.dataList).tostring()
 	
-	def get_heightmap(self, buffer=False, as_array=False):
+	def generate_heightmap(self, buffer=False, as_array=False):
 		if buffer:
-			return StringIO(pack(">i", 256)+self.get_heightmap())
+			return StringIO(pack(">i", 256)+self.generate_heightmap()) # Length + Heightmap, ready for insertion into Chunk NBT
 		else:
 			bytes = []
 			for z in range(16):
@@ -90,7 +90,7 @@ class BlockArray(object):
 	
 	def get_heightmap_image(self, buffer=False, gmin=False, gmax=False):
 		if (not PIL_enabled): return false
-		points = self.get_heightmap(buffer, True)
+		points = self.generate_heightmap(buffer, True)
 		# Normalize the points
 		hmin = min(points) if (gmin == False) else gmin # Allow setting the min/max explicitly, in case this is part of a bigger map
 		hmax = max(points) if (gmax == False) else gmax
