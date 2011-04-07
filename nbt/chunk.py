@@ -10,12 +10,13 @@ except ImportError:
 	PIL_enabled = False
 
 class Chunk(object):
-	def __init__(self, x, z, length):
-		self.coords = x,z
-		self.length = length
+	def __init__(self, nbt):
+		chunk_data = nbt['Level']
+		self.coords = chunk_data['xPos'].value(),chunk_data['zPos'].value()
+		self.blocks = BlockArray(chunk_data['Blocks'].value, chunk_data['Data'].value)
 	
 	def __repr__(self):
-		return "("+str(self.coords[0])+","+str(self.coords[1])+"): "+str(self.length)
+		return "("+str(self.coords[0])+","+str(self.coords[1])+")"
 
 """ Convenience class for dealing with a Block/data byte array """
 class BlockArray(object):
