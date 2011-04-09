@@ -15,9 +15,9 @@ class Chunk(object):
 		self.coords = chunk_data['xPos'],chunk_data['zPos']
 		self.blocks = BlockArray(chunk_data['Blocks'].value, chunk_data['Data'].value)
 
-	def get_heightmap_image(self, buffer=False, gmin=False, gmax=False):
+	def get_heightmap_image(self, buffer=False, gmin=False, gmax=False, contour=False):
 		if (not PIL_enabled): return false
-		points = self.blocks.generate_heightmap(buffer, True)
+		points = self.blocks.generate_heightmap(buffer, True) if (contour == False) else self.blocks.generate_contour(True)
 		# Normalize the points
 		hmin = min(points) if (gmin == False) else gmin # Allow setting the min/max explicitly, in case this is part of a bigger map
 		hmax = max(points) if (gmax == False) else gmax
@@ -182,6 +182,23 @@ class BlockArray(object):
 				return bytes
 			else:
 				return array.array('B', bytes).tostring()
+	
+	# Similar to a heightmap, but ignores trees (leaves and wood), flowers/pumpkins, and water, to get a true land contour layout
+	def generate_contour(self, as_array=False):
+		bytes = []
+		invalid_blocks = [0, 6, 8, 9, 10, 11, 17, 18, 26, 37, 38, 39, 40, 50, 51, 52, 55, 59, 63, 65, 66, 68, 69, 70, 71, 72, 75, 76, 77, 81, 83, 85, 86, 91, 92, 93, 94]
+		for z in range(16):
+			for x in range(16):
+				for y in range(127,-1,-1):
+					offset = y + z*128 + x*128*16
+					if (not self.blocksList[offset] in invalid_blocks):
+						bytes.append(y+1)
+						break
+		if (as_array):
+			return bytes
+		else:
+			return array.array('B', bytes).tostring()
+		
 
 	def set_blocks(self, list=None, dict=None, fill_air=False):
 		if list:
