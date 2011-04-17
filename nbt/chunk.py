@@ -236,8 +236,8 @@ class BlockArray(object):
 		(0,0,0), (0,1,0), (0,2,0) ... (0,127,0), (0,0,1), (0,1,1), (0,2,1) ... (0,127,1), (0,0,2) ... (0,127,15), (1,0,0), (1,1,0) ... (15,127,15)
 		
 		blocks = []
-		for x in xrange(15):
-		  for z in xrange(15):
+		for x in xrange(16):
+		  for z in xrange(16):
 		    for y in xrange(127):
 		      blocks.append(Block(x,y,z))
 		"""
