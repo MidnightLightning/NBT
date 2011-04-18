@@ -165,10 +165,10 @@ class octave_stack(noise_stack):
 			self.add(perlin_noise(cur_dims), cur_weight)
 
 class gradient(object):
-	def __init__(self, points):
+	def __init__(self, points={}):
 		self.points = points # A dictionary of values
 		if (not '0.0' in self.points.keys()): self.points['0.0'] = 0.0 # Add end points if not given
-		if (not '1.0' in self.points.keys()): self.points['0.0'] = 0.0
+		if (not '1.0' in self.points.keys()): self.points['1.0'] = 1.0
 	
 	def getValue(self, point):
 		if (str(point) in self.points.keys()):
