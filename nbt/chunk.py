@@ -9,16 +9,6 @@ except ImportError:
 	PIL_enabled = False
 
 """ Handle a single chunk of data (16x16x128 blocks) """
-from StringIO import StringIO
-from struct import pack, unpack
-import array, math
-
-try:
-	import Image
-	PIL_enabled = True
-except ImportError:
-	PIL_enabled = False
-
 class Chunk(object):
 	def __init__(self, nbt):
 		chunk_data = nbt['Level']
