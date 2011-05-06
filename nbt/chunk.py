@@ -186,7 +186,7 @@ class BlockArray(object):
 	# Similar to a heightmap, but ignores trees (leaves and wood), flowers/pumpkins, and water, to get a true land contour layout
 	def generate_contour(self, as_array=False):
 		bytes = []
-		invalid_blocks = [0, 6, 8, 9, 10, 11, 17, 18, 26, 37, 38, 39, 40, 50, 51, 52, 55, 59, 63, 65, 66, 68, 69, 70, 71, 72, 75, 76, 77, 81, 83, 85, 86, 91, 92, 93, 94]
+		invalid_blocks = [0, 6, 8, 9, 10, 11, 17, 18, 26, 37, 38, 39, 40, 50, 51, 52, 55, 59, 63, 65, 66, 68, 69, 70, 71, 72, 75, 76, 77, 78, 79, 81, 83, 85, 86, 91, 92, 93, 94]
 		for z in range(16):
 			for x in range(16):
 				for y in range(127,-1,-1):
