@@ -177,7 +177,7 @@ class RegionFile(object):
 				map.paste(im, ((31-z)*16, x*16))
 		return map
 
-	def get_heightmap_image(self, gmin=50, gmax=128, contour=False):
+	def get_heightmap_image(self, gmin=50, gmax=128, contour=False, heat=False):
 		if (not PIL_enabled): return false
 		map = Image.new('RGBA', (512,512), (128,128,128,0))
 		for x in range(32):
@@ -185,7 +185,7 @@ class RegionFile(object):
 				chunk_nbt = self.get_chunk(x,z)
 				if (chunk_nbt == None): continue # Skip this chunk if it doesn't exist
 				chunk = Chunk(chunk_nbt)
-				im = chunk.get_heightmap_image(False, gmin, gmax, contour)
+				im = chunk.get_heightmap_image(False, gmin, gmax, contour, heat)
 				map.paste(im, ((31-z)*16, x*16))
 		return map
 		

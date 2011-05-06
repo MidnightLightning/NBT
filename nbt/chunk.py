@@ -1,5 +1,6 @@
 from StringIO import StringIO
 from struct import pack, unpack
+from mapbuilder import noise
 import array, math
 
 try:
@@ -15,24 +16,46 @@ class Chunk(object):
 		self.coords = chunk_data['xPos'],chunk_data['zPos']
 		self.blocks = BlockArray(chunk_data['Blocks'].value, chunk_data['Data'].value)
 
-	def get_heightmap_image(self, buffer=False, gmin=False, gmax=False, contour=False):
+	def get_heightmap_image(self, buffer=False, gmin=False, gmax=False, contour=False, heat=False):
 		if (not PIL_enabled): return false
 		points = self.blocks.generate_heightmap(buffer, True) if (contour == False) else self.blocks.generate_contour(True)
 		# Normalize the points
 		hmin = min(points) if (gmin == False) else gmin # Allow setting the min/max explicitly, in case this is part of a bigger map
 		hmax = max(points) if (gmax == False) else gmax
 		hdelta = hmax-hmin+0.0
-		pixels = ""
-		for y in range(16):
-			for x in range(16):
-				# pix X => mc -Z
-				# pix Y => mc X
-				offset = (15-x)*16+y
-				height = int((points[offset]-hmin)/hdelta*255)
-				if (height < 0): height = 0
-				if (height > 255): height = 255
-				pixels += pack(">B", height)
-		im = Image.fromstring('L', (16,16), pixels)
+		if (heat == False):
+			# Generate black and white image
+			pixels = ""
+			for y in range(16):
+				for x in range(16):
+					# pix X => mc -Z
+					# pix Y => mc X
+					offset = (15-x)*16+y
+					height = int((points[offset]-hmin)/hdelta*255)
+					if (height < 0): height = 0
+					if (height > 255): height = 255
+					pixels += pack(">B", height)
+			im = Image.fromstring('L', (16,16), pixels)
+		else:
+			# Generate color image
+			pixels = ""
+			# Deconstructed RGB values for a Blue => Green => Red => Yellow => White heatmap gradient
+			grad_r = noise.gradient({'0.0':0.0, '0.25':0.0, '0.5':1.0, '0.75':1.0, '1.0':1.0})
+			grad_g = noise.gradient({'0.0':0.0, '0.25':1.0, '0.5':0.0, '0.75':1.0, '1.0':1.0})
+			grad_b = noise.gradient({'0.0':1.0, '0.25':0.0, '0.5':0.0, '0.75':0.0, '1.0':1.0})
+			for y in range(16):
+				for x in range(16):
+					# pix X => mc -Z
+					# pix Y => mc X
+					offset = (15-x)*16+y
+					height = (points[offset]-hmin)/(hdelta+0.0)
+					if (height < 0): height = 0
+					if (height > 1): height = 1
+					r = grad_r.getValue(height)*255.0
+					g = grad_g.getValue(height)*255.0
+					b = grad_b.getValue(height)*255.0
+					pixels += pack("BBB", grad_r.getValue(height)*255.0, grad_g.getValue(height)*255.0, grad_b.getValue(height)*255.0)
+			im = Image.fromstring('RGB', (16,16), pixels)
 		return im
 
 	def get_map(self):
