@@ -218,9 +218,9 @@ class RegionFile(object):
 				try:
 					chunk = zlib.decompress(chunk)
 					chunk = StringIO(chunk)
-					return NBTFile(buffer=chunk) # pass uncompressed
 				except Exception, e:
 					raise ChunkDataError(str(e))
+				return NBTFile(buffer=chunk) # pass uncompressed
 				
 			elif (compression == 1):
 				chunk = StringIO(chunk)

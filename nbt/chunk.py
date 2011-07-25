@@ -141,14 +141,14 @@ class Chunk(object):
 class BlockArray(object):
 	def __init__(self, blocksBytes=None, dataBytes=None):
 		if (blocksBytes != None):
-			self.blocksList = [ord(b) for b in blocksBytes] # A list of bytes
+			self.blocksList = blocksBytes # A bytearray
 		else:
-			self.blocksList = [0]*32768 # Create an empty block list (32768 entries of zero (air))
+			self.blocksList = bytearray(32768) # Create an empty block list (32768 entries of zero (air))
 		
 		if (dataBytes != None):
-			self.dataList = [ord(b) for b in dataBytes]
+			self.dataList = dataBytes
 		else:
-			self.dataList = [0]*32768 # Create an empty data list (32768 entries of zero)
+			self.dataList = bytearray(32768) # Create an empty data list (32768 entries of zero)
 
 	# Get all data entries
 	def get_all_data(self):
@@ -180,14 +180,14 @@ class BlockArray(object):
 			length = len(self.blocksList)
 			return StringIO(pack(">i", length)+self.get_blocks_byte_array())
 		else:
-			return array.array('B', self.blocksList).tostring()
+			return self.blocksList.decode("utf-8")
 
 	def get_data_byte_array(self, buffer=False):
 		if buffer:
 			length = len(self.dataList)/2
 			return StringIO(pack(">i", length)+self.get_data_byte_array())
 		else:
-			return array.array('B', self.dataList).tostring()
+			return self.dataList.decode("utf-8")
 
 	def generate_heightmap(self, buffer=False, as_array=False):
 		if buffer:

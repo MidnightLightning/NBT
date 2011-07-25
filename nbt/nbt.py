@@ -99,12 +99,12 @@ class TAG_Byte_Array(TAG):
 	#Parsers and Generators
 	def _parse_buffer(self, buffer, offset=None):
 		length = TAG_Int(buffer=buffer)
-		self.value = buffer.read(length.value)
+		self.value = bytearray(buffer.read(length.value))
 
 	def _render_buffer(self, buffer, offset=None):
 		length = TAG_Int(len(self.value))
 		length._render_buffer(buffer, offset)
-		buffer.write(self.value)
+		buffer.write(self.value.decode("iso8859-1"))
 
 	#Printing and Formatting of tree
 	def __repr__(self):
@@ -123,10 +123,10 @@ class TAG_String(TAG):
 		read = buffer.read(length.value)
 		if len(read) != length.value:
 			raise StructError()
-		self.value = unicode(read, "utf-8")
+		self.value = unicode(read, "iso8859-1")
 
 	def _render_buffer(self, buffer, offset=None):
-		save_val = self.value.encode("utf-8")
+		save_val = self.value.encode("iso8859-1")
 		length = TAG_Short(len(save_val))
 		length._render_buffer(buffer, offset)
 		buffer.write(save_val)
