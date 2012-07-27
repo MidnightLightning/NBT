@@ -1,95 +1,124 @@
-#
-# For more info of the region file format look:
-# http://www.minecraftwiki.net/wiki/Beta_Level_Format
-# 
+"""
+Handle a region file, containing 32x32 chunks
+For more info of the region file format look:
+http://www.minecraftwiki.net/wiki/Beta_Level_Format
+"""
 
-from nbt import NBTFile
-from chunk import Chunk
+from .nbt import NBTFile
 from struct import pack, unpack
 from gzip import GzipFile
 import zlib
-from StringIO import StringIO
+from io import BytesIO
 import math, time
 from os.path import getsize
 
 class RegionHeaderError(Exception):
-	"""Error in the header of the region file for a given chunk"""
+	"""Error in the header of the region file for a given chunk."""
 	def __init__(self, msg):
 		self.msg = msg
 
 class ChunkHeaderError(Exception):
-	"""Error in the header of a chunk"""
+	"""Error in the header of a chunk, included the bytes of length and byte version."""
 	def __init__(self, msg):
 		self.msg = msg
 
 class ChunkDataError(Exception):
-	"""Error in the data of a chunk, included the bytes of length and byte version"""
+	"""Error in the data of a chunk."""
 	def __init__(self, msg):
 		self.msg = msg
 
 
 class RegionFile(object):
-	"""
-	A convenience class for extracting NBT files from the Minecraft Beta Region Format
-	"""
-	
+	"""A convenience class for extracting NBT files from the Minecraft Beta Region Format."""
 	def __init__(self, filename=None, fileobj=None):
+		"""Read a region file by filename of file object. The fileobj is not closed after use; it is the callers responibility to close that."""
+		self.file = None
 		if filename:
 			self.filename = filename
 			self.file = open(filename, 'r+b')
 		if fileobj:
 			self.file = fileobj
-			
+
 		# Some variables and constants
 		#
 		# Status is a number representing:
+		# -4 = Error, the region header length and the chunk length are incompatible
 		# -3 = Error, chunk header has a 0 length
 		# -2 = Error, chunk inside the header of the region file
 		# -1 = Error, chunk partially/completely outside of file
 		#  0 = Ok
 		#  1 = Chunk non-existant yet
 
+		self.STATUS_CHUNK_MISMATCHED_LENGTHS = -4
 		self.STATUS_CHUNK_ZERO_LENGTH = -3
 		self.STATUS_CHUNK_IN_HEADER = -2
 		self.STATUS_CHUNK_OUT_OF_FILE = -1
 		self.STATUS_CHUNK_OK = 0
 		self.STATUS_CHUNK_NOT_CREATED = 1
-		
-		self.chunks = []
+
 		self.header = {}
+		"""
+		dict containing the metadata found in the 8 kiByte header:
+		(x,y): (offset, sectionlength, timestamp, status)
+		offset counts in 4 kiByte sectors, starting from the start of the file. (24 bit int)
+		blocklength is in 4 kiByte sectors (8 bit int)
+		timestamp is a Unix timestamps (seconds since epoch) (32 bits)
+		status is determined from offset, sectionlength and file size.
+		Status can be any of:
+		- STATUS_CHUNK_IN_HEADER
+		- STATUS_CHUNK_OUT_OF_FILE
+		- STATUS_CHUNK_OK
+		- STATUS_CHUNK_NOT_CREATED
+		"""
 		self.chunk_headers = {}
+		"""
+		dict containing the metadata found in each chunk block:
+		(x,y): (length, compression, chunk_status)
+		chunk length in bytes, starting from the compression byte (32 bit int)
+		compression is 1 (Gzip) or 2 (bzip) (8 bit int)
+		chunk_status is determined from sectionlength and status (as found in the header).
+		chunk_status can be any of:
+		- STATUS_CHUNK_MISMATCHED_LENGTHS (status will be STATUS_CHUNK_OK)
+		- STATUS_CHUNK_ZERO_LENGTH (status will be STATUS_CHUNK_OK)
+		- STATUS_CHUNK_IN_HEADER
+		- STATUS_CHUNK_OUT_OF_FILE
+		- STATUS_CHUNK_OK
+		- STATUS_CHUNK_NOT_CREATED
+		If the chunk is not defined, the tuple is (None, None, STATUS_CHUNK_NOT_CREATED)
+		"""
 		self.extents = None
 		if self.file:
 			self.size = getsize(self.filename)
 			if self.size == 0:
 				# Some region files seems to have 0 bytes of size, and
-				# Minecraft handle them without problems. Take them 
+				# Minecraft handle them without problems. Take them
 				# as empty region files.
-				for x in range(32):
-					for z in range(32):
-						self.header[x,z] = (0, 0, 0, self.STATUS_CHUNK_NOT_CREATED)
-				self.parse_chunk_headers()
+				self.init_header()
 			else:
 				self.parse_header()
-				self.parse_chunk_headers()
+		else:
+			self.init_header()
+		self.parse_chunk_headers()
 
 
 	def __del__(self):
 		if self.file:
 			self.file.close()
 
+	def init_header(self):
+		for x in range(32):
+			for z in range(32):
+				self.header[x,z] = (0, 0, 0, self.STATUS_CHUNK_NOT_CREATED)
+
 	def parse_header(self):
-		""" 
-		Reads the region header and stores: offset, length and status.
-		
-		"""
+		"""Read the region header and stores: offset, length and status."""
 		for index in range(0,4096,4):
 			self.file.seek(index)
-			offset, length = unpack(">IB", "\0"+self.file.read(4))
+			offset, length = unpack(">IB", b"\0"+self.file.read(4))
 			self.file.seek(index + 4096)
-			timestamp = unpack(">I", self.file.read(4))
-			x = (index/4) % 32
-			z = int(index/4)/32
+			timestamp = unpack(">I", self.file.read(4))[0]
+			x = int(index//4) % 32
+			z = int(index//4)//32
 			if offset == 0 and length == 0:
 				status = self.STATUS_CHUNK_NOT_CREATED
 
@@ -121,10 +150,12 @@ class RegionFile(object):
 					length = length[0] # unpack always returns a tuple, even unpacking one element
 					compression = unpack(">B",self.file.read(1))
 					compression = compression[0]
-					# TODO TODO TODO check if the region_file_length and the chunk header length are compatible
 					if length == 0: # chunk can't be zero length
 						chunk_status = self.STATUS_CHUNK_ZERO_LENGTH
-					
+					elif length > region_header_length*4096:
+						# the lengths stored in region header and chunk
+						# header are not compatible
+						chunk_status = self.STATUS_CHUNK_MISMATCHED_LENGTHS
 					else:
 						chunk_status = self.STATUS_CHUNK_OK
 
@@ -146,50 +177,77 @@ class RegionFile(object):
 					length = None
 					compression = None
 					chunk_status = self.STATUS_CHUNK_IN_HEADER
-		
+
 				self.chunk_headers[x, z] = (length, compression, chunk_status)
 
 
 	def locate_free_space(self):
 		pass
-	
+
 	def get_chunks(self):
+		"""
+		Return coordinates and length of all chunks.
+
+		Warning: despite the name, this function does not actually return the chunk,
+		but merely it's metadata. Use get_chunk(x,z) to get the NBTFile, and then Chunk()
+		to get the actual chunk.
+		"""
+		return self.get_chunk_coords()
+
+	def get_chunk_coords(self):
+		"""Return coordinates and length of all chunks."""
 		index = 0
 		self.file.seek(index)
 		chunks = []
 		while (index < 4096):
-			offset, length = unpack(">IB", "\0"+self.file.read(4))
+			offset, length = unpack(">IB", b"\0"+self.file.read(4))
 			if offset:
-				x = (index/4) % 32
-				z = int(index/4)/32
+				x = int(index//4) % 32
+				z = int(index//4)//32
 				chunks.append({'x':x,'z':z,'length':length})
 			index += 4
 		return chunks
-	
-	@classmethod
-	def getchunk(path, x, z):
-		pass
-		
+
+	def iter_chunks(self):
+		"""
+		Return an iterater over all chunks present in the region.
+		Warning: this function returns a NBTFile() object, use Chunk(nbtfile) to get a
+		Chunk instance.
+		"""
+		for cc in self.get_chunk_coords():
+			yield self.get_chunk(cc['x'],cc['z'])
+
 	def get_timestamp(self, x, z):
+		"""Return the timestamp of when this region file was last modified."""
 		self.file.seek(4096+4*(x+z*32))
-		timestamp = unpack(">I",self.file.read(4))
+		timestamp = unpack(">I",self.file.read(4))[0]
+		return timestamp
+
+	def chunk_count(self):
+		return len(self.get_chunk_coords())
+
+	def get_nbt(self, x, z):
+		return self.get_chunk(x, z)
 
 	def get_chunk(self, x, z):
+		"""Return a NBTFile"""
 		#read metadata block
 		offset, length, timestamp, region_header_status = self.header[x, z]
 		if region_header_status == self.STATUS_CHUNK_NOT_CREATED:
 			return None
-			
+
 		elif region_header_status == self.STATUS_CHUNK_IN_HEADER:
-			raise RegionHeaderError('The chunk is in the region header')
+			raise RegionHeaderError('Chunk %d,%d is in the region header' % (x,z))
 
 		elif region_header_status == self.STATUS_CHUNK_OUT_OF_FILE:
-			raise RegionHeaderError('The chunk is partially/completely outside the file')
+			raise RegionHeaderError('Chunk %d,%d is partially/completely outside the file' % (x,z))
 
 		elif region_header_status == self.STATUS_CHUNK_OK:
 			length, compression, chunk_header_status = self.chunk_headers[x, z]
 			if chunk_header_status == self.STATUS_CHUNK_ZERO_LENGTH:
-				raise ChunkHeaderError('The length of the chunk is 0')
+				raise ChunkHeaderError('The length of chunk %d,%d is 0' % (x,z))
+			elif chunk_header_status == self.STATUS_CHUNK_MISMATCHED_LENGTHS:
+				raise ChunkHeaderError('The length in region header and the length in the header of chunk %d,%d are incompatible' % (x,z))
 
 			self.file.seek(offset*4*1024 + 5) # offset comes in sectors of 4096 bytes + length bytes + compression byte
 			chunk = self.file.read(length-1)
@@ -197,34 +255,34 @@ class RegionFile(object):
 			if (compression == 2):
 				try:
 					chunk = zlib.decompress(chunk)
-					chunk = StringIO(chunk)
+					chunk = BytesIO(chunk)
 					return NBTFile(buffer=chunk) # pass uncompressed
-				except Exception, e:
+				except Exception as e:
 					raise ChunkDataError(str(e))
-				
+
 			elif (compression == 1):
-				chunk = StringIO(chunk)
+				chunk = BytesIO(chunk)
 				try:
 					return NBTFile(fileobj=chunk) # pass compressed; will be filtered through Gzip
-				except Exception, e:
+				except Exception as e:
 					raise ChunkDataError(str(e))
-					
+
 			else:
 				raise ChunkDataError('Unknown chunk compression/format')
-				
+
 		else:
 			return None
-	
+
 	def write_chunk(self, x, z, nbt_file):
-		""" A smart chunk writer that uses extents to trade off between fragmentation and cpu time"""
-		data = StringIO()
+		"""A smart chunk writer that uses extents to trade off between fragmentation and cpu time."""
+		data = BytesIO()
 		nbt_file.write_file(buffer = data) #render to buffer; uncompressed
-		
+
 		compressed = zlib.compress(data.getvalue()) #use zlib compression, rather than Gzip
-		data = StringIO(compressed)
-		
-		nsectors = int(math.ceil((data.len+0.001)/4096))
-		
+		data = BytesIO(compressed)
+
+		nsectors = int(math.ceil((len(data.getvalue())+0.001)/4096))
+
 		#if it will fit back in it's original slot:
 		offset, length, timestamp, status = self.header[x, z]
 		pad_end = False
@@ -250,7 +308,7 @@ class RegionFile(object):
 					self.file.seek(0)
 					found = True
 					for intersect_offset, intersect_len in ( (extent_offset, extent_len)
-						for extent_offset, extent_len in (unpack(">IB", "\0"+self.file.read(4)) for block in xrange(1024))
+						for extent_offset, extent_len in (unpack(">IB", b"\0"+self.file.read(4)) for block in xrange(1024))
 							if extent_offset != 0 and ( sector >= extent_offset < (sector+nsectors))):
 								#move foward to end of intersect
 								sector = intersect_offset + intersect_len
@@ -261,18 +319,18 @@ class RegionFile(object):
 
 		#write out chunk to region
 		self.file.seek(sector*4096)
-		self.file.write(pack(">I", data.len+1)) #length field
+		self.file.write(pack(">I", len(data.getvalue())+1)) #length field
 		self.file.write(pack(">B", 2)) #compression field
 		self.file.write(data.getvalue()) #compressed data
 		if pad_end:
 			# Write zeros up to the end of the chunk
 			self.file.seek((sector+nsectors)*4096-1)
 			self.file.write(chr(0))
-		
+
 		#seek to header record and write offset and length records
 		self.file.seek(4*(x+z*32))
 		self.file.write(pack(">IB", sector, nsectors)[1:])
-		
+
 		#write timestamp
 		self.file.seek(4096+4*(x+z*32))
 		timestamp = int(time.time())
@@ -280,9 +338,11 @@ class RegionFile(object):
 
 
 	def unlink_chunk(self, x, z):
-		""" Removes a chunk from the header of the region file (write zeros in the offset of the chunk).
+		"""
+		Remove a chunk from the header of the region file (write zeros in the offset of the chunk).
 		Using only this method leaves the chunk data intact, fragmenting the region file (unconfirmed).
-		This is an start to a better function remove_chunk"""
-		
+		This is an start to a better function remove_chunk
+		"""
+
 		self.file.seek(4*(x+z*32))
 		self.file.write(pack(">IB", 0, 0)[1:])
